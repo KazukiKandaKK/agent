@@ -42,6 +42,89 @@ A scratch-built agent harness in TypeScript + Node.js that calls the Anthropic A
 
 All production dependencies are wired in `src/compositionRoot.ts`. `src/index.ts` only calls `createProductionHarness()`.
 
+### Architecture diagram
+
+```mermaid
+flowchart LR
+    subgraph CLI["CLI"]
+        index["src/index.ts"]
+    end
+
+    subgraph Wiring["Production wiring"]
+        root["src/compositionRoot.ts"]
+        cfg["src/config.ts<br/>dotenv"]
+    end
+
+    subgraph Core["Core harness"]
+        loop["AgentLoop"]
+        ctx["ConversationContext"]
+        sys["buildSystemPrompt()"]
+        registry["Tool registry"]
+    end
+
+    subgraph Ports["Ports (interfaces)"]
+        llmPort["LlmClient"]
+        cmdPort["CommandRunner"]
+        confPort["ConfirmationPrompt"]
+        webPort["WebSearchClient"]
+    end
+
+    subgraph Prod["Production implementations"]
+        anthro["AnthropicLlmClient<br/>@anthropic-ai/sdk"]
+        nodeCmd["NodeCommandRunner<br/>child_process"]
+        cliConf["CliConfirmationPrompt<br/>readline"]
+        sandbox["SandboxExecutor<br/>fs / path"]
+        webSearch["MockWebSearchClient"]
+    end
+
+    subgraph Tools["Tools"]
+        bash["bash"]
+        fread["read_file"]
+        fwrite["write_file"]
+        fedit["edit_file"]
+        web["web_search"]
+    end
+
+    subgraph Safety["Safety"]
+        gate["PermissionGate"]
+    end
+
+    index --> root
+    root --> cfg
+    root --> loop
+    root --> gate
+    root --> Tools
+    loop --> llmPort
+    loop --> ctx
+    loop --> sys
+    loop --> registry
+    loop --> gate
+    gate --> confPort
+    Tools --> cmdPort
+    Tools --> sandbox
+    Tools --> webPort
+    anthro -- implements --> llmPort
+    nodeCmd -- implements --> cmdPort
+    cliConf -- implements --> confPort
+    sandbox -- used by --> Tools
+    webSearch -- implements --> webPort
+```
+
+### Runtime dependencies
+
+- `@anthropic-ai/sdk` — direct Anthropic Messages API calls
+- `dotenv` — load `ANTHROPIC_API_KEY`, `WORKING_DIR`, etc. from `.env`
+- Node.js built-ins only: `child_process`, `fs`, `path`, `readline`  
+  No agent frameworks (LangChain, Vercel AI SDK, Mastra, etc.) at runtime.
+
+### Test doubles
+
+The same ports are implemented by fakes so the loop, tools, and safety layer can be unit-tested without API keys or side effects:
+
+- `FakeLlmClient` (`src/harness/fakeLlmClient.ts`)
+- `FakeCommandRunner` (`tests/fakeCommandRunner.ts`)
+- `FakeConfirmationPrompt` (`src/safety/fakeConfirmationPrompt.ts`)
+
 ## Demo
 
 See `examples/fix-bug-demo.md` for a recorded run fixing a one-line bug in `examples/sample-project/auth.ts`.
