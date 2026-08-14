@@ -4,10 +4,21 @@ A scratch-built agent harness in TypeScript + Node.js that calls the Anthropic A
 
 ## Setup
 
+### 自動セットアップ
+
+```bash
+bash scripts/setup.sh
+```
+
+このスクリプトは `.env` の作成、`npm install`、TypeScript コンパイル、任意のテスト実行まで行います。
+
+### 手動セットアップ
+
 1. Copy `.env.example` to `.env` and fill in `ANTHROPIC_API_KEY`.
 2. Run `npm install`.
-3. Run `npm run start` and type a task at the `>` prompt.
-4. (Optional) Set `WORKING_DIR` in `.env` to the directory the agent should operate in.
+3. Run `npm run build`.
+4. Run `npm run start` and type a task at the `>` prompt.
+5. (Optional) Set `WORKING_DIR` in `.env` to the directory the agent should operate in.
 
 ## Scripts
 
